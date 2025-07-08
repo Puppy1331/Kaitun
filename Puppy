@@ -1,0 +1,307 @@
+--// SERVICES & MODULES
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Workspace = game:GetService("Workspace")
+local player = Players.LocalPlayer
+
+-- ⚙️ BOOST FPS & GIẢM LAG
+local Lighting = game:GetService("Lighting")
+local Terrain = workspace:FindFirstChildOfClass("Terrain")
+local Players = game:GetService("Players")
+
+-- 1. Dọn toàn bộ hiệu ứng
+for _, v in pairs(game:GetDescendants()) do
+	if v:IsA("BasePart") then
+		v.Material = Enum.Material.SmoothPlastic
+		v.Reflectance = 0
+	elseif v:IsA("Decal") or v:IsA("Texture") then
+		v:Destroy()
+	elseif v:IsA("ParticleEmitter") or v:IsA("Trail") or v:IsA("Fire") or v:IsA("Smoke") then
+		v.Enabled = false
+	elseif v:IsA("Explosion") then
+		v.Visible = false
+	end
+end
+
+-- 2. Xoá hiệu ứng Lighting
+for _, v in pairs(Lighting:GetChildren()) do
+	if v:IsA("BlurEffect") or v:IsA("SunRaysEffect") or v:IsA("ColorCorrectionEffect") or v:IsA("DepthOfFieldEffect") then
+		v.Enabled = false
+	end
+end
+
+-- 3. Tắt shadow và ánh sáng động
+Lighting.GlobalShadows = false
+Lighting.FogEnd = 1e10
+Lighting.Brightness = 0
+
+-- 4. Dọn Terrain
+if Terrain then
+	Terrain.WaterWaveSize = 0
+	Terrain.WaterWaveSpeed = 0
+	Terrain.WaterReflectance = 0
+	Terrain.WaterTransparency = 0
+end
+
+-- 5. Tắt âm thanh
+for _, s in pairs(workspace:GetDescendants()) do
+	if s:IsA("Sound") then
+		s.Volume = 0
+	end
+end
+
+-- 6. Tắt hiệu ứng Player
+for _, p in pairs(Players:GetPlayers()) do
+	if p ~= Players.LocalPlayer then
+		local char = p.Character
+		if char then
+			for _, part in pairs(char:GetDescendants()) do
+				if part:IsA("ParticleEmitter") or part:IsA("Trail") or part:IsA("BillboardGui") then
+					part:Destroy()
+				end
+			end
+		end
+	end
+end
+
+-- 7. Set FPS max = 10 (cần exploit hỗ trợ setfpscap)
+pcall(function()
+	if setfpscap then
+		setfpscap(10)
+		print("🎯 Set FPS tối đa = 10")
+	else
+		print("⚠️ Không hỗ trợ setfpscap trên executor này.")
+	end
+end)
+
+
+local logicRoot = player:WaitForChild("PlayerGui"):WaitForChild("LogicHolder")
+local modulesDir = logicRoot:WaitForChild("ClientLoader"):WaitForChild("Modules")
+local SharedItemData = require(modulesDir:WaitForChild("SharedItemData"))
+local ClientDataHandler = require(modulesDir:WaitForChild("ClientDataHandler"))
+
+local equipRemote = ReplicatedStorage.RemoteFunctions:WaitForChild("SetUnitEquipped")
+local deleteRemote = ReplicatedStorage.RemoteFunctions:WaitForChild("DeleteUnit")
+local placeUnitRemote = ReplicatedStorage.RemoteFunctions:WaitForChild("PlaceUnit")
+local voteRemote = ReplicatedStorage.RemoteFunctions:WaitForChild("PlaceDifficultyVote")
+local skipRemote = ReplicatedStorage.RemoteFunctions:WaitForChild("SkipWave")
+local speedRemote = ReplicatedStorage.RemoteFunctions:WaitForChild("ChangeTickSpeed")
+local restartRemote = ReplicatedStorage.RemoteFunctions:WaitForChild("RestartGame")
+
+local placeIdToLobby = 108533757090220
+local hasEquipped = false
+
+--// UNIT CẦN
+local neededUnits = {
+	unit_tomato_plant = true,
+	unit_laser_plant = true,
+	unit_farmer_npc = true,
+}
+local priorityList = {
+	"unit_tomato_plant",
+	"unit_farmer_npc",
+	"unit_laser_plant"
+}
+
+-- STEP 1: CLEAN UNIT, EQUIP
+local function waitForInventory()
+	local inv
+	repeat
+		inv = ClientDataHandler.GetValue and ClientDataHandler.GetValue("Inventory")
+		task.wait(1)
+	until inv
+	return inv
+end
+
+local function cleanAndEquipUnits()
+	local inventory = waitForInventory()
+	local keepCount = {}
+	local equippedMap = {}
+
+	local backpack = player:FindFirstChild("Backpack")
+	if backpack then
+		for _, tool in ipairs(backpack:GetChildren()) do
+			if tool:IsA("Tool") then
+				equippedMap[tool.Name] = true
+			end
+		end
+	end
+
+	for uniqueId, data in pairs(inventory) do
+		local unitId = data.ItemData and data.ItemData.ID
+		local displayName = data.ItemData and data.ItemData.DisplayName
+		local itemInfo = SharedItemData.GetItem(unitId)
+		local rarity = itemInfo and itemInfo.Params and itemInfo.Params.Rarity or "Unknown"
+
+		-- Nếu là unit godly không nằm trong danh sách cần → giữ nguyên
+		if rarity == "ra_godly" and not neededUnits[unitId] then
+			print("💎 Giữ lại unit Godly không cần:", displayName)
+			continue
+		end
+
+		-- Kiểm soát số lượng (cả unit cần và không cần)
+		keepCount[unitId] = (keepCount[unitId] or 0) + 1
+		if keepCount[unitId] > 1 then
+			pcall(function()
+				deleteRemote:InvokeServer({ uniqueId })
+				print("🗑️ Xoá bản dư:", displayName)
+			end)
+		else
+			-- Nếu là unit cần → equip
+			if neededUnits[unitId] then
+				if not equippedMap[displayName] then
+					pcall(function()
+						equipRemote:InvokeServer(tostring(uniqueId), true)
+						print("✅ Equip:", displayName)
+					end)
+				else
+					print("✅ Đã được equip sẵn:", displayName)
+				end
+			else
+				-- Unit không cần (không godly) → unequip nếu đang equip
+				pcall(function()
+					equipRemote:InvokeServer(tostring(uniqueId), false)
+					print("❌ Unequip:", displayName)
+				end)
+			end
+		end
+	end
+
+	hasEquipped = true
+end
+
+
+-- STEP 2: JOIN LOBBY 1 NGƯỜI
+local function joinLobbyIfReady()
+	if game.PlaceId ~= placeIdToLobby then return end
+	repeat task.wait(1) until hasEquipped
+
+	local function getHRP()
+		local char = player.Character or player.CharacterAdded:Wait()
+		return char:WaitForChild("HumanoidRootPart", 5)
+	end
+
+	local function isLobby(model)
+		return model:GetAttribute("MaxPlayers") == 1 and model:GetAttribute("StartTime") == math.huge
+	end
+
+	task.spawn(function()
+		while true do
+			local hrp = getHRP()
+			local lobbies = Workspace:FindFirstChild("Map") and Workspace.Map:FindFirstChild("LobbiesJungle")
+			if hrp and lobbies then
+				for _, lobby in ipairs(lobbies:GetChildren()) do
+					if lobby:IsA("Model") and isLobby(lobby) then
+						local cage = lobby:FindFirstChild("Cage")
+						if cage then
+							for _, part in ipairs(cage:GetChildren()) do
+								if part:IsA("BasePart") then
+									hrp.CFrame = part.CFrame + Vector3.new(0, 3, 0)
+									task.wait(0.3)
+									hrp.CFrame = part.CFrame
+									print("🚪 Vào lobby")
+									return
+								end
+							end
+						end
+					end
+				end
+			end
+			task.wait(5)
+		end
+	end)
+end
+
+-- STEP 3: PLACE UNIT ƯU TIÊN
+local function tryPlaceUnit()
+	local backpack = player:FindFirstChild("Backpack")
+	if not backpack then return end
+
+	for _, id in ipairs(priorityList) do
+		for _, tool in ipairs(backpack:GetChildren()) do
+			if tool:IsA("Tool") and (tool.Name == id or tool:FindFirstChild(id)) then
+				local args = {
+					id,
+					{
+						Valid = true,
+						Rotation = 180,
+						CF = CFrame.new(-335.089, 63.384, -121.475),
+						Position = Vector3.new(-335.089, 63.384, -121.475)
+					}
+				}
+				pcall(function()
+					placeUnitRemote:InvokeServer(unpack(args))
+					print("🪖 Đặt unit:", id)
+				end)
+				return
+			end
+		end
+	end
+end
+
+-- STEP 4: AUTO FARM CONTROL
+task.spawn(function()
+	while true do
+		task.wait(1)
+		local hasVoted = false
+		local votesFolder = Workspace:FindFirstChild("DifficultyVotes")
+		if votesFolder then
+			for _, v in pairs(votesFolder:GetChildren()) do
+				local voters = v:FindFirstChild("Voters")
+				if voters and voters:FindFirstChild(player.Name) then
+					hasVoted = true
+					break
+				end
+			end
+		end
+
+		if not hasVoted then
+			pcall(function() voteRemote:InvokeServer("dif_impossible") end)
+		end
+		pcall(function() skipRemote:InvokeServer(true) end)
+	end
+end)
+
+task.spawn(function()
+	while true do
+		task.wait(5)
+		pcall(function() speedRemote:InvokeServer(2) end)
+	end
+end)
+
+task.spawn(function()
+	local lastRestart = 0
+	while true do
+		task.wait(1)
+		local gui = player:FindFirstChild("PlayerGui")
+		local gameGui = gui and gui:FindFirstChild("GameGui")
+		if gameGui then
+			local mid = gameGui:FindFirstChild("Screen") and gameGui.Screen:FindFirstChild("Middle")
+			local endGui = mid and mid:FindFirstChild("GameEnd")
+			if endGui and endGui.Visible and tick() - lastRestart > 10 then
+				lastRestart = tick()
+				pcall(function() restartRemote:InvokeServer() end)
+			end
+		end
+	end
+end)
+
+-- STEP 5: TỰ ĐẶT UNIT KHI GAME START
+task.spawn(function()
+	while true do
+		while Workspace:FindFirstChild("DifficultyVotes") do task.wait(1) end
+		task.wait(2)
+		tryPlaceUnit()
+		task.wait(10)
+	end
+end)
+
+player.CharacterAdded:Connect(function()
+	task.wait(5)
+	tryPlaceUnit()
+end)
+
+-- CHẠY TOÀN BỘ ĐÚNG THỨ TỰ: dọn → equip → rồi mới vào lobby
+cleanAndEquipUnits() -- chạy đồng bộ, đảm bảo xử lý xong
+
+task.spawn(joinLobbyIfReady) -- chỉ join lobby sau khi đã equip xong
