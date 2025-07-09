@@ -1,0 +1,73 @@
+--// SERVICES & MODULES
+local _wait = task.wait
+repeat
+    _wait()
+until game:IsLoaded()
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local player = game:GetService("Players").LocalPlayer
+
+local logicRoot = player:WaitForChild("PlayerGui"):WaitForChild("LogicHolder")
+local modulesDir = logicRoot:WaitForChild("ClientLoader"):WaitForChild("Modules")
+local ClientDataHandler = require(modulesDir:WaitForChild("ClientDataHandler"))
+local SharedItemData = require(modulesDir:WaitForChild("SharedItemData"))
+
+local deleteRemote = ReplicatedStorage:WaitForChild("RemoteFunctions"):WaitForChild("DeleteUnit")
+
+local function Roll()
+    while true do
+        local args = {
+            "ub_classic_v9",
+            10
+        }
+        game:GetService("ReplicatedStorage"):WaitForChild("RemoteFunctions"):WaitForChild("BuyUnitBox"):InvokeServer(unpack(args))
+        local args = {
+            "ub_sun",
+            10
+        }
+        game:GetService("ReplicatedStorage"):WaitForChild("RemoteFunctions"):WaitForChild("BuyUnitBox"):InvokeServer(unpack(args))
+         local args = {
+            "ub_bee",
+            10
+        }
+        game:GetService("ReplicatedStorage"):WaitForChild("RemoteFunctions"):WaitForChild("BuyUnitBox"):InvokeServer(unpack(args))
+        task.wait()
+    end
+end
+--// LOOP EVERY 5 SECONDS
+setfpscap(15)
+task.spawn(Roll)
+while true do
+    task.wait(5)
+
+    local inventory = ClientDataHandler.GetValue("Inventory")
+    local toDelete = {}
+    local kept = {}
+
+    for uniqueId, unitData in pairs(inventory or {}) do
+        local itemId = unitData.ItemData and unitData.ItemData.ID
+        local rarity = require(game:GetService("Players").LocalPlayer.PlayerGui.LogicHolder.ClientLoader.SharedConfig.ItemData.Units.Configs:FindFirstChild(itemId))
+
+        -- Nếu là ra_godly thì giữ lại
+        if rarity.Rarity == "ra_godly" then
+            kept[itemId] = true
+            continue
+        end
+
+        -- Nếu chưa giữ con nào của loại này thì giữ lại
+        if not kept[itemId] then
+            kept[itemId] = true
+        else
+            table.insert(toDelete, uniqueId)
+        end
+    end
+
+    --// DELETE UNIT
+    if #toDelete > 0 then
+        print(":wastebasket: Deleting", #toDelete, "units...")
+        pcall(function()
+            deleteRemote:InvokeServer(toDelete)
+        end)
+    else
+        print(":white_check_mark: Không có unit nào cần xoá.")
+    end
+end
