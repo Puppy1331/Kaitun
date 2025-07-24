@@ -45,7 +45,10 @@ local function collectAndSend()
     for uniqueId, unitData in pairs(inventory or {}) do
         local itemId = unitData.ItemData and unitData.ItemData.ID
         local rarity = require(Player.PlayerGui.LogicHolder.ClientLoader.SharedConfig.ItemData.Units.Configs:FindFirstChild(itemId))
-        if rarity and rarity.Rarity == "ra_godly" and itemId ~= "unit_fire_flower" then
+        if rarity and rarity.Rarity == "ra_godly" 
+            and itemId ~= "unit_fire_flower" 
+            and itemId ~= "unit_stun_flower" 
+            and itemId ~= "unit_banana" then
             table.insert(List, itemId)
         end
     end
