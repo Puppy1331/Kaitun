@@ -56,6 +56,7 @@ local function collectAndSend()
         account = Player.Name,
         seeds = SeedHave,
         units = List
+        last_update = os.time()
     }
     local url = "http://accountgiare.info.vn/webhook.php"
     SendToWebhook(url, data)
