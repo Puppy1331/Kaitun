@@ -1,4 +1,4 @@
-local SeedWaitRoll = 7200
+local SeedWaitRoll = 5400
 local _wait = task.wait
 
 repeat _wait() until game:IsLoaded()
@@ -12,8 +12,8 @@ local deleteRemote = ReplicatedStorage:WaitForChild("RemoteFunctions"):WaitForCh
 -- Hàm roll đúng 1 lần mỗi loại
 local function Roll()
     -- Roll 1 hộp sun
-    local args_bee = { "ub_bee", 10 }
-    ReplicatedStorage.RemoteFunctions.BuyUnitBox:InvokeServer(unpack(args_bee))
+    local args_sun = { "ub_sun", 10 }
+    ReplicatedStorage.RemoteFunctions.BuyUnitBox:InvokeServer(unpack(args_sun))
     -- Roll 1 hộp sun
     local args_sun = { "ub_sun", 10 }
     ReplicatedStorage.RemoteFunctions.BuyUnitBox:InvokeServer(unpack(args_sun))
