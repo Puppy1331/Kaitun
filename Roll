@@ -14,9 +14,9 @@ local function Roll()
     -- Roll 1 hộp sun
     local args_bee = { "ub_bee", 10 }
     ReplicatedStorage.RemoteFunctions.BuyUnitBox:InvokeServer(unpack(args_bee))
-    -- Roll 1 hộp bee
+    -- Roll 1 hộp sun
     local args_sun = { "ub_sun", 10 }
-    ReplicatedStorage.RemoteFunctions.BuyUnitBox:InvokeServer(unpack(args_bee))
+    ReplicatedStorage.RemoteFunctions.BuyUnitBox:InvokeServer(unpack(args_sun))
 end
 
 local function RemoveUnit()
