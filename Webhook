@@ -65,5 +65,5 @@ end
 -- Gửi mỗi 60s
 while true do
     collectAndSend()
-    task.wait(5)
+    task.wait(50)
 end
