@@ -15,7 +15,7 @@ local function Roll()
     local args_lucky = { "ub_lucky_1", 10 }
     ReplicatedStorage.RemoteFunctions.BuyUnitBox:InvokeServer(unpack(args_lucky))
 
-    local args_lucky = { "ub_lucky_1", 10 }
+    local args_lucky = { "ub_lucky_2", 10 }
     ReplicatedStorage.RemoteFunctions.BuyUnitBox:InvokeServer(unpack(args_lucky))
 
    -- local args_bee = { "ub_bee", 10 }
