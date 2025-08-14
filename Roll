@@ -12,10 +12,10 @@ local deleteRemote = ReplicatedStorage:WaitForChild("RemoteFunctions"):WaitForCh
 -- Hàm roll đúng 1 lần mỗi loại
 local function Roll()
     -- Roll 1 hộp bee
-    local args_lucky = { "ub_lucky_2", 10 }
+    local args_lucky = { "ub_lucky_1", 10 }
     ReplicatedStorage.RemoteFunctions.BuyUnitBox:InvokeServer(unpack(args_lucky))
 
-    local args_lucky = { "ub_lucky_2", 10 }
+    local args_lucky = { "ub_lucky_1", 10 }
     ReplicatedStorage.RemoteFunctions.BuyUnitBox:InvokeServer(unpack(args_lucky))
 
   --  local args_lucky = { "ub_lucky_1", 10 }
