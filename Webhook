@@ -1,4 +1,4 @@
--- SendToWebhook.lua: Gửi dữ liệu account/seeds/units lên webhook website
+-- SendToWebhook.lua: Gửi dữ liệu account/seeds/units + account age lên webhook website
 local _wait = task.wait
 repeat _wait() until game:IsLoaded()
 
@@ -52,17 +52,23 @@ local function collectAndSend()
             table.insert(List, itemId)
         end
     end
+
+    -- ✅ Thêm account age
+    local accountAge = Player.AccountAge -- số ngày account đã tồn tại
+
     local data = {
         account = Player.Name,
+        account_age = accountAge, -- thêm vào đây
         seeds = SeedHave,
         units = List,
         last_update = os.time()
     }
+
     local url = "http://accountgiare.info.vn/webhook.php"
     SendToWebhook(url, data)
 end
 
--- Gửi mỗi 60s
+-- Gửi mỗi 50s
 while true do
     collectAndSend()
     task.wait(50)
