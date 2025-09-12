@@ -48,6 +48,8 @@ local function collectAndSend()
         if rarity and rarity.Rarity == "ra_godly" 
             and itemId ~= "unit_fire_flower" 
             and itemId ~= "unit_stun_flower" 
+            and itemId ~= "unit_zapper" 
+            and itemId ~= "unit_passionfruit" 
             and itemId ~= "unit_banana" then
             table.insert(List, itemId)
         end
