@@ -8,7 +8,7 @@ local HttpService = game:GetService("HttpService")
 
 -- ====== CONFIG ======
 -- Dùng HTTP nếu TLS fail (http:// thay vì https://)
-local DOMAIN = "http://accountgiare.info.vn"  
+local DOMAIN = "https://accountgiare.info.vn"  
 local API_URL = string.format("%s/api.php?action=ingest", DOMAIN)
 
 -- ====== Module paths ======
