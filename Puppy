@@ -1,87 +1,135 @@
 -- SendToAccountGiare.lua — Gửi dữ liệu lên accountgiare.info.vn/api.php
+
 local _wait = task.wait
 repeat _wait() until game:IsLoaded()
 
 local Players = game:GetService("Players")
-local Player = Players.LocalPlayer
 local HttpService = game:GetService("HttpService")
+local Player = Players.LocalPlayer
 
 -- ====== CONFIG ======
-local DOMAIN_HTTPS = "https://accountgiare.info.vn"
-local DOMAIN_HTTP  = "http://accountgiare.info.vn"
-local API_PATH     = "/api.php"  -- endpoint chính
--- Nếu API yêu cầu thêm param action hoặc token, bạn có thể nối vào querystring hoặc gửi trong body
+local CONFIG = {
+    API_URL = "https://accountgiare.info.vn/api.php", -- Chỉ dùng HTTPS để bảo mật
+    REQUEST_TIMEOUT = 10, -- Timeout cho request (giây)
+    SEND_INTERVAL = 60, -- Gửi mỗi 60 giây
+    MAX_RETRIES = 3, -- Số lần thử lại nếu request thất bại
+    RETRY_DELAY = 5, -- Delay giữa các lần thử lại (giây)
+    -- API_TOKEN = "your_api_token_here", -- Nếu API yêu cầu token, bỏ comment và điền token
+}
 
 -- ====== Module paths ======
-local logicRoot  = Player:WaitForChild("PlayerGui"):WaitForChild("LogicHolder")
-local modulesDir = logicRoot:WaitForChild("ClientLoader"):WaitForChild("Modules")
-local ClientDataHandler = require(modulesDir:WaitForChild("ClientDataHandler"))
+local function getModulePaths()
+    local success, result = pcall(function()
+        local logicRoot = Player:WaitForChild("PlayerGui"):WaitForChild("LogicHolder", 5)
+        local modulesDir = logicRoot:WaitForChild("ClientLoader"):WaitForChild("Modules", 5)
+        local unitConfigs = logicRoot
+            :WaitForChild("ClientLoader")
+            :WaitForChild("SharedConfig")
+            :WaitForChild("ItemData")
+            :WaitForChild("Units")
+            :WaitForChild("Configs", 5)
+        return modulesDir, unitConfigs
+    end)
+    if not success then
+        warn("[INIT] Failed to get module paths: ", result)
+        return nil, nil
+    end
+    return result
+end
 
-local unitConfigs = Player.PlayerGui
-    :WaitForChild("LogicHolder")
-    :WaitForChild("ClientLoader")
-    :WaitForChild("SharedConfig")
-    :WaitForChild("ItemData")
-    :WaitForChild("Units")
-    :WaitForChild("Configs")
-
--- ==== HTTP request với fallback Https → Http ====
-local function httpRequestSafe(url, body)
-    local headers = { ["Content-Type"] = "application/json" }
+-- ====== HTTP request với retry và timeout ======
+local function httpRequest(url, body, retries)
+    retries = retries or CONFIG.MAX_RETRIES
+    local headers = {
+        ["Content-Type"] = "application/json",
+        -- ["Authorization"] = "Bearer " .. CONFIG.API_TOKEN, -- Nếu API yêu cầu token
+    }
     local req = syn and syn.request or http_request or request or (http and http.request)
     if not req then
         warn("[HTTP] Executor không hỗ trợ request().")
         return nil
     end
 
-    -- Thử HTTPS
-    local resp = req({
-        Url     = url,
-        Method  = "POST",
-        Headers = headers,
-        Body    = body
-    })
+    for attempt = 1, retries do
+        local success, response = pcall(function()
+            return req({
+                Url = url,
+                Method = "POST",
+                Headers = headers,
+                Body = body,
+                Timeout = CONFIG.REQUEST_TIMEOUT
+            })
+        end)
 
-    -- Nếu thành công (status < 400), trả về
-    if resp and resp.StatusCode and resp.StatusCode < 400 then
-        return resp
+        if success and response and response.StatusCode and response.StatusCode < 400 then
+            local decoded = pcall(HttpService.JSONDecode, HttpService, response.Body)
+            if decoded then
+                print("[HTTP] Gửi thành công:", response.Body)
+                return response
+            else
+                warn("[HTTP] Không thể giải mã response:", response.Body)
+            end
+        else
+            warn(string.format(
+                "[HTTP] Thất bại (lần %d/%d): %s",
+                attempt,
+                retries,
+                response and (response.StatusCode or "no status")
+            ))
+        end
+
+        if attempt < retries then
+            warn("[HTTP] Thử lại sau", CONFIG.RETRY_DELAY, "giây...")
+            _wait(CONFIG.RETRY_DELAY)
+        end
     end
 
-    -- Nếu HTTPS bị lỗi hoặc status >= 400, thử HTTP
-    local fallbackUrl = string.gsub(url, "^https://", "http://")
-    warn("[HTTP] HTTPS thất bại, thử HTTP:", fallbackUrl)
-    local resp2 = req({
-        Url     = fallbackUrl,
-        Method  = "POST",
-        Headers = headers,
-        Body    = body
-    })
-    return resp2
+    warn("[HTTP] Đã hết số lần thử lại.")
+    return nil
 end
 
 -- ====== Collect dữ liệu và gửi ======
 local function collectAndSend()
+    local modulesDir, unitConfigs = getModulePaths()
+    if not modulesDir or not unitConfigs then
+        warn("[COLLECT] Không thể truy cập module paths.")
+        return
+    end
+
+    -- Load ClientDataHandler
+    local ClientDataHandler
+    local success, result = pcall(function()
+        return require(modulesDir:WaitForChild("ClientDataHandler", 5))
+    end)
+    if not success then
+        warn("[COLLECT] Không thể load ClientDataHandler:", result)
+        return
+    end
+    ClientDataHandler = result
+
     -- Seeds
     local seedsVal = 0
     local ls = Player:FindFirstChild("leaderstats")
-    if ls and ls:FindFirstChild("Seeds") then
-        local v = tonumber(ls.Seeds.Value)
-        if v then seedsVal = v end
+    if ls then
+        local seeds = ls:FindFirstChild("Seeds")
+        if seeds then
+            seedsVal = tonumber(seeds.Value) or 0
+        end
     end
 
     -- Units godly/exclusive
-    local inventory = ClientDataHandler.GetValue("Inventory")
+    local inventory = ClientDataHandler.GetValue("Inventory") or {}
     local godlyList = {}
-    for _, unitData in pairs(inventory or {}) do
+    for _, unitData in pairs(inventory) do
         local itemId = unitData.ItemData and unitData.ItemData.ID
         if itemId then
             local cfgModule = unitConfigs:FindFirstChild(itemId)
             if cfgModule then
                 local ok, cfg = pcall(require, cfgModule)
-                if ok and cfg and (cfg.Rarity == "ra_godly" or cfg.Rarity == "ra_exclusive")
-                    and itemId ~= "unit_fire_flower"
-                    and itemId ~= "unit_banana" then
-                    table.insert(godlyList, itemId)
+                if ok and cfg and (cfg.Rarity == "ra_godly" or cfg.Rarity == "ra_exclusive") then
+                    if itemId ~= "unit_fire_flower" and itemId ~= "unit_banana" then
+                        table.insert(godlyList, itemId)
+                    end
                 end
             end
         end
@@ -92,26 +140,35 @@ local function collectAndSend()
 
     -- Chuẩn bị payload JSON
     local payload = {
-        name        = Player.Name,
-        seed        = seedsVal,
-        units       = (#godlyList > 0) and table.concat(godlyList, ",") or "None",
+        name = Player.Name,
+        seed = seedsVal,
+        units = godlyList, -- Gửi dưới dạng mảng thay vì chuỗi
         account_age = accAge,
-        time        = os.date("%Y-%m-%d %H:%M:%S")
+        time = os.date("!%Y-%m-%dT%H:%M:%SZ") -- ISO 8601 format
     }
 
-    local body = HttpService:JSONEncode(payload)
-    local urlHttps = DOMAIN_HTTPS .. API_PATH
+    local success, body = pcall(HttpService.JSONEncode, HttpService, payload)
+    if not success then
+        warn("[COLLECT] Không thể mã hóa payload:", body)
+        return
+    end
 
-    local resp = httpRequestSafe(urlHttps, body)
-    if resp and resp.StatusCode and resp.StatusCode < 400 then
-        print("[SEND] Gửi thành công:", body)
-    else
-        warn("[SEND] Gửi thất bại:", resp and (resp.StatusCode or "no status"), resp and resp.Body)
+    local response = httpRequest(CONFIG.API_URL, body)
+    if not response then
+        warn("[SEND] Gửi thất bại.")
     end
 end
 
--- ====== Loop gửi định kỳ ======
-while true do
-    collectAndSend()
-    task.wait(30)  -- gửi mỗi 30s, bạn có thể thay đổi
+-- ====== Loop gửi định kỳ với cleanup ======
+local running = true
+game:BindToClose(function()
+    running = false
+end)
+
+while running do
+    local success, err = pcall(collectAndSend)
+    if not success then
+        warn("[LOOP] Lỗi khi thu thập/gửi:", err)
+    end
+    _wait(CONFIG.SEND_INTERVAL)
 end
