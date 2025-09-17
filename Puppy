@@ -7,8 +7,8 @@ local Player = Players.LocalPlayer
 local HttpService = game:GetService("HttpService")
 
 -- ====== CONFIG ======
--- Không cần token, chỉ dùng action=ingest
-local DOMAIN = "https://accountgiare.info.vn"
+-- Dùng HTTP nếu TLS fail (http:// thay vì https://)
+local DOMAIN = "http://accountgiare.info.vn"  
 local API_URL = string.format("%s/api.php?action=ingest", DOMAIN)
 
 -- ====== Module paths ======
@@ -27,14 +27,12 @@ local unitConfigs = sharedConfig
     :WaitForChild("Units")
     :WaitForChild("Configs")
 
--- ==== Helper: multi-executor request ====
+-- ==== Hàm gửi request tới website ====
 local function httpRequest(opts)
-    -- Hỗ trợ nhiều executor: syn.request / http_request / request / http.request
     local req = syn and syn.request or http_request or request or (http and http.request)
     if req then
         return req(opts)
     else
-        -- Fallback: HttpService:PostAsync (nếu executor không có request)
         if opts.Method == "POST" and opts.Body then
             local ok, resp = pcall(function()
                 return HttpService:PostAsync(opts.Url, opts.Body, Enum.HttpContentType.ApplicationJson)
@@ -44,7 +42,7 @@ local function httpRequest(opts)
     end
 end
 
--- ====== Gom dữ liệu và gửi về website ======
+-- ====== Gom dữ liệu và gửi ======
 local function collectAndSend()
     local inventory = ClientDataHandler.GetValue("Inventory")
     local godlyNames = {}
@@ -69,7 +67,7 @@ local function collectAndSend()
 
     local unitSummary = (#godlyNames > 0) and table.concat(godlyNames, ", ") or "Không có"
 
-    -- Lấy Seeds an toàn
+    -- Seeds
     local seedsVal = 0
     local ls = Player:FindFirstChild("leaderstats")
     if ls and ls:FindFirstChild("Seeds") then
@@ -77,13 +75,16 @@ local function collectAndSend()
         if v then seedsVal = v end
     end
 
-    -- Payload theo API website (api.php?action=ingest)
+    -- Account Age
+    local accAge = tonumber(Player.AccountAge) or 0
+
+    -- Payload JSON gửi lên website
     local payload = {
         name        = Player.Name,
         seed        = seedsVal,
         units       = unitSummary,
-        account_age = tonumber(Player.AccountAge) or 0,
-        -- time = os.date("%Y-%m-%d %H:%M:%S") -- nếu muốn gửi thêm thời gian
+        account_age = accAge,
+        time        = os.date("%Y-%m-%d %H:%M:%S")
     }
 
     local body = HttpService:JSONEncode(payload)
@@ -103,8 +104,8 @@ local function collectAndSend()
     end
 end
 
--- Auto gửi mỗi 10s (tuỳ chỉnh 10–30s)
+-- Auto gửi mỗi 30s
 while true do
     collectAndSend()
-    task.wait(10)
+    task.wait(30)
 end
