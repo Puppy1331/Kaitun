@@ -1,50 +1,40 @@
--- SendToWebsite.lua — Gửi dữ liệu account/seeds/godly/age lên website
--- ⛳ Chỉnh URL ở dưới: WEBHOOK_URL
-
+-- WebhookReport.lua — gửi dữ liệu lên website, có fallback HTTP khi HTTPS lỗi TLS
 local _wait = task.wait
 repeat _wait() until game:IsLoaded()
 
-local Players          = game:GetService("Players")
-local Player           = Players.LocalPlayer
-local HttpService      = game:GetService("HttpService")
-local ReplicatedStorage= game:GetService("ReplicatedStorage")
+local Players = game:GetService("Players")
+local Player  = Players.LocalPlayer
+local HttpService = game:GetService("HttpService")
 
--- === Lấy module dữ liệu trong game (tuỳ hệ thống game của bạn) ===
+-- === Config ===
+local HTTPS_URL = "https://accountgiare.info.vn/webhook.php?action=ingest"
+local HTTP_URL  = "http://accountgiare.info.vn/webhook.php?action=ingest"   -- fallback
+local REPORT_EVERY = 60       -- giây
+local MAX_RETRY    = 2        -- số lần thử lại/chu kỳ
+
+-- === Game modules (tuỳ hệ thống của bạn) ===
 local logicRoot  = Player:WaitForChild("PlayerGui"):WaitForChild("LogicHolder")
 local modulesDir = logicRoot:WaitForChild("ClientLoader"):WaitForChild("Modules")
 local ClientDataHandler = require(modulesDir:WaitForChild("ClientDataHandler"))
 
--- ======================
--- Cấu hình
--- ======================
-local WEBHOOK_URL  = "https://accountgiare.info.vn/webhook.php?action=ingest" -- ← đổi sang domain thật
-local REPORT_EVERY = 60   -- giây, chu kỳ gửi
-local SAFE_NUMBER  = 0
-
--- ======================
 -- Helpers
--- ======================
-
--- Chuẩn hoá số seeds kiểu "7.2k" / "1,234" → number
 local function ParseNumber(str)
     local s = tostring(str or ""):gsub(",", "")
     local multipliers = { k = 1e3, m = 1e6, b = 1e9, t = 1e12 }
     local number, suffix = s:lower():match("([%d%.]+)([kmbt]?)")
     local n = tonumber(number)
-    if not n then return SAFE_NUMBER end
-    return n * (multipliers[suffix] or 1)
+    return (n or 0) * (multipliers[suffix] or 1)
 end
 
--- Đếm số unit godly trong inventory
 local function CountGodlyUnits()
     local inv = ClientDataHandler.GetValue("Inventory") or {}
     local count = 0
     for _, unit in pairs(inv) do
         local itemId = unit.ItemData and unit.ItemData.ID
         if itemId then
-            local cfgModule = Player.PlayerGui.LogicHolder.ClientLoader.SharedConfig.ItemData.Units.Configs:FindFirstChild(itemId)
-            if cfgModule then
-                local ok, cfg = pcall(require, cfgModule)
+            local m = Player.PlayerGui.LogicHolder.ClientLoader.SharedConfig.ItemData.Units.Configs:FindFirstChild(itemId)
+            if m then
+                local ok, cfg = pcall(require, m)
                 if ok and cfg and cfg.Rarity == "ra_godly" then
                     count += 1
                 end
@@ -54,62 +44,79 @@ local function CountGodlyUnits()
     return count
 end
 
--- Gửi JSON qua nhiều API request khác nhau (syn.request / request / http_request)
-local function HttpPostJson(url, tbl)
-    local body = HttpService:JSONEncode(tbl)
+local function do_request(url, body)
     local headers = { ["Content-Type"] = "application/json" }
-
-    -- Synapse X
+    -- nhiều executor khác nhau: syn.request / request / http_request
     if syn and syn.request then
-        return syn.request({ Url = url, Method = "POST", Headers = headers, Body = body })
+        -- 1 số bản syn hỗ trợ Options.SslVerify; đặt false nếu cần (không khuyến nghị)
+        local req = { Url=url, Method="POST", Headers=headers, Body=body }
+        -- req.Options = { SslVerify = true } -- mặc định true; không set = dùng default
+        return syn.request(req)
+    elseif request then
+        return request({ Url=url, Method="POST", Headers=headers, Body=body })
+    elseif http_request then
+        return http_request({ Url=url, Method="POST", Headers=headers, Body=body })
     end
-    -- Script-Ware / Krnl / Fluxus (tuỳ executor)
-    if request then
-        return request({ Url = url, Method = "POST", Headers = headers, Body = body })
-    end
-    if http_request then
-        return http_request({ Url = url, Method = "POST", Headers = headers, Body = body })
-    end
-
-    -- Fallback: Roblox HttpService (thường bị chặn trong game public)
-    -- pcall(function() HttpService:PostAsync(url, body, Enum.HttpContentType.ApplicationJson) end)
-    return nil, "No HTTP request function available"
+    return nil, "NoRequestAPI"
 end
 
--- Thu thập dữ liệu & gửi
-local function ReportOnce()
-    -- Lấy Seeds dạng text & số
-    local seedsTxt = tostring((Player:FindFirstChild("leaderstats") and Player.leaderstats:FindFirstChild("Seeds") and Player.leaderstats.Seeds.Value) or 0)
-    local seedsNum = ParseNumber(seedsTxt)
+local function looks_like_tls_error(err_or_resp)
+    local s = tostring(err_or_resp or "")
+    -- các chuỗi hay gặp: TlsVerificationFail / certificate / ssl / handshake
+    return s:find("TlsVerificationFail") or s:lower():find("ssl") or s:lower():find("certificate")
+end
 
-    -- Tạo payload
+local function ReportOnce()
+    local seedsTxt = tostring((Player:FindFirstChild("leaderstats") and Player.leaderstats:FindChild("Seeds") and Player.leaderstats.Seeds.Value) or 0)
     local data = {
         account_name = Players.LocalPlayer.Name,
         user_id      = Players.LocalPlayer.UserId,
         age_days     = Players.LocalPlayer.AccountAge,
         seeds_txt    = seedsTxt,
-        seeds_num    = seedsNum,
+        seeds_num    = ParseNumber(seedsTxt),
         godly_count  = CountGodlyUnits(),
         place_id     = game.PlaceId,
-        job_id       = game.JobId
+        job_id       = game.JobId,
     }
+    local body = HttpService:JSONEncode(data)
 
-    -- Gửi
-    local ok, err = pcall(function()
-        local resp = HttpPostJson(WEBHOOK_URL, data)
-        -- Tuỳ executor, resp có thể là table {StatusCode, Body, Success...}
-        if typeof(resp) == "table" and resp.StatusCode and resp.StatusCode >= 400 then
-            warn("[Webhook] HTTP ".. tostring(resp.StatusCode) .." | Body: ".. tostring(resp.Body))
+    local urls = { HTTPS_URL, HTTP_URL }  -- thử https trước, fail thì dùng http
+    local last_err
+
+    for _, url in ipairs(urls) do
+        local tries = 0
+        while tries <= MAX_RETRY do
+            tries += 1
+            local ok, resp_or_err = pcall(function() return do_request(url, body) end)
+            if ok and type(resp_or_err) == "table" then
+                local status = resp_or_err.StatusCode or resp_or_err.Status or 0
+                if status >= 200 and status < 300 then
+                    -- thành công
+                    return true
+                else
+                    -- lỗi HTTP (4xx/5xx)
+                    last_err = "[HTTP] "..tostring(status).." | "..tostring(resp_or_err.Body)
+                    warn("[Webhook] "..last_err)
+                    break -- thử URL tiếp theo (ví dụ https→http)
+                end
+            else
+                -- exception từ pcall hoặc API trả string lỗi
+                local err_msg = ok and "Unknown" or tostring(resp_or_err)
+                last_err = err_msg
+                warn("[Webhook] Send error: "..err_msg)
+                -- nếu là lỗi TLS và còn URL fallback, thoát vòng while để chuyển URL
+                if looks_like_tls_error(err_msg) then break end
+                _wait(1.0) -- backoff ngắn rồi thử lại
+            end
         end
-    end)
-    if not ok then
-        warn("[Webhook] Send error: ", err)
+        -- sang URL tiếp theo (https → http)
     end
+
+    warn("[Webhook] All attempts failed. Last error: "..tostring(last_err))
+    return false
 end
 
--- ======================
--- Loop gửi theo chu kỳ
--- ======================
+-- Loop
 task.spawn(function()
     while true do
         ReportOnce()
