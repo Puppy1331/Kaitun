@@ -1,5 +1,5 @@
 local SeedWaitRoll = 600000
-local CandyWaitRoll = 1800  -- Cần >=900 Candy Corns cho 10 ub_halloween
+local CandyWaitRoll = 1800  -- Cần >=1800 Candy Corns cho 20 ub_halloween (2 lần roll x 900)
 local _wait = task.wait
 
 repeat _wait() until game:IsLoaded()
@@ -11,7 +11,7 @@ local modulesDir = logicRoot:WaitForChild("ClientLoader"):WaitForChild("Modules"
 local ClientDataHandler = require(modulesDir:WaitForChild("ClientDataHandler"))
 local deleteRemote = ReplicatedStorage:WaitForChild("RemoteFunctions"):WaitForChild("DeleteUnit")
 
--- Đường dẫn đến Candy Corns display (mới thêm)
+-- Đường dẫn đến Candy Corns display
 local candyTitle = player:WaitForChild("PlayerGui"):WaitForChild("GameGui"):WaitForChild("Screen"):WaitForChild("Bottom"):WaitForChild("CurrencyDisplay"):WaitForChild("CandyCornsDisplay"):WaitForChild("Title")
 
 -- Hàm roll Bee (giữ nguyên)
@@ -23,19 +23,29 @@ local function Roll()
    ReplicatedStorage.RemoteFunctions.BuyUnitBox:InvokeServer(unpack(args_lucky))
 end
 
--- Hàm roll Halloween Candy (mới thêm)
+-- Hàm roll Halloween Candy (sửa: roll 2 lần, fix duplicate args)
 local function RollCandy()
-    print("🎃 Đủ Candy Corns! Đang mua 10 Unit Box Halloween...")
+    print("🎃 Đủ Candy Corns! Đang mua 20 Unit Box Halloween (2 lần)...")
     local args = { "ub_halloween", 10 }
-
-    local args = { "ub_halloween", 10 }
-    local success, result = pcall(function()
+    
+    -- Roll lần 1
+    local success1, result1 = pcall(function()
         return ReplicatedStorage.RemoteFunctions.BuyUnitBox:InvokeServer(unpack(args))
     end)
-    if success then
-        print("Mua thành công! Kết quả:", result)
+    if success1 then
+        print("Mua lần 1 thành công! Kết quả:", result1)
     else
-        warn("Lỗi khi mua Halloween box:", result)
+        warn("Lỗi lần 1:", result1)
+    end
+    
+    -- Roll lần 2
+    local success2, result2 = pcall(function()
+        return ReplicatedStorage.RemoteFunctions.BuyUnitBox:InvokeServer(unpack(args))
+    end)
+    if success2 then
+        print("Mua lần 2 thành công! Kết quả:", result2)
+    else
+        warn("Lỗi lần 2:", result2)
     end
 end
 
@@ -72,7 +82,7 @@ local function ParseNumber(str)
     return tonumber(number) * (multipliers[suffix] or 1)
 end
 
--- Hàm lấy và parse Candy Corns từ GUI text (mới thêm)
+-- Hàm lấy và parse Candy Corns từ GUI text
 local function GetCandyCorns()
     local candyText = candyTitle.Text
     local cleanText = (string.gsub(candyText, "[^0-9%.kmbtKM BT]", ""))  -- Clean text, giữ số + suffix
@@ -88,7 +98,7 @@ while true do
         task.spawn(RemoveUnit)
     end
     
-    -- Check Candy Corns (mới thêm)
+    -- Check Candy Corns
     local CandyHave = GetCandyCorns()
     if CandyHave >= CandyWaitRoll then
         RollCandy()
