@@ -1,0 +1,926 @@
+local _wait = task.wait
+repeat _wait() until game:IsLoaded()
+task.wait(5)
+local GuiService = game:GetService("GuiService")
+local VirtualInputManager = game:GetService("VirtualInputManager")
+GuiService.AutoSelectGuiEnabled = true
+local StepFarm = "Time1"
+local function CheckUnitHave(unitName)
+    local a = require(game:GetService("ReplicatedStorage").Modules.ClientData)
+    if not a.UnitData then return false end
+    for i, v in pairs(a.UnitData) do
+        if type(v) == "table" then
+            for key, value in pairs(v) do
+                if value == unitName then
+                    return true
+                end
+            end
+        elseif v == unitName then
+            return true
+        end
+    end
+    return false
+end
+local function GetListEquip()
+    local Unit = {}
+    local a = require(game:GetService("ReplicatedStorage").Modules.ClientData)
+    if not a.UnitData then return false end
+    for i, v in pairs(a.UnitData) do
+        if type(v) == "table" then
+            for key, value in pairs(v) do
+                local NameUnit = v.UnitName
+                if key == "Equipped" and value == true then
+                    Unit[NameUnit] = true
+                end
+            end
+        end
+    end
+    return Unit
+end
+local function PlayMap1()
+    local ClientData = require(game:GetService("ReplicatedStorage").Modules.ClientData)
+    game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("PlayerReady"):FireServer()
+    if ClientData.GameSettings.AutoSkip == false then
+        local args = {"AutoSkip"}
+        game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("SetSettings"):InvokeServer(unpack(args))
+    end
+    if ClientData.GameSettings.AutoSpeedVote == false then
+        local args = {"AutoSpeedVote"}
+        game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("SetSettings"):InvokeServer(unpack(args))
+    end
+    if game:GetService("Players").LocalPlayer.PlayerGui:FindFirstChild("EndGameUI") then
+        if game:GetService("Players").LocalPlayer.PlayerGui.EndGameUI.BG.Visible then
+            GuiService.SelectedObject = game:GetService("Players").LocalPlayer.PlayerGui.EndGameUI.BG.Buttons.Retry
+            task.wait()
+            VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.Return, false, game)
+            VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.Return, false, game)
+        end
+    end
+    local PosFarm = {
+        CFrame.new(-149.20004272460938, 197.96109008789062, 15.458066940307617, 1, 0, 0, 0, 1, 0, 0, 0, 1),
+        CFrame.new(-153.55795288085938, 197.96109008789062, 15.451805114746094, 1, 0, 0, 0, 1, 0, 0, 0, 1),
+        CFrame.new(-153.32461547851562, 197.96109008789062, 10.96823501586914, 1, 0, 0, 0, 1, 0, 0, 0, 1),
+        CFrame.new(-157.37310791015625, 197.96109008789062, 10.98324966430664, 1, 0, 0, 0, 1, 0, 0, 0, 1),
+        CFrame.new(-149.29165649414062, 197.96109008789062, 11.16708755493164, 1, 0, 0, 0, 1, 0, 0, 0, 1)
+    }
+    
+
+    for i, position in pairs(PosFarm) do
+        local args = {
+            "Zoro",
+            position
+        }
+        game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("PlaceTower"):FireServer(unpack(args))
+        wait(1) -- Small delay to prevent spam
+    end
+    
+    wait(0.5)
+    
+    local AllUnit = workspace:WaitForChild("Towers")
+    for i, v in pairs(AllUnit:GetChildren()) do
+        if v.Name == "Zoro" then
+            local args = {
+                v
+            }
+            game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("Upgrade"):InvokeServer(unpack(args))
+        end
+    end
+end
+
+local function PlayMap2()
+    local ClientData = require(game:GetService("ReplicatedStorage").Modules.ClientData)
+    game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("PlayerReady"):FireServer()
+    if ClientData.GameSettings.AutoSkip == false then
+        local args = {"AutoSkip"}
+        game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("SetSettings"):InvokeServer(unpack(args))
+    end
+    if ClientData.GameSettings.AutoSpeedVote == false then
+        local args = {"AutoSpeedVote"}
+        game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("SetSettings"):InvokeServer(unpack(args))
+    end
+    if game:GetService("Players").LocalPlayer.PlayerGui:FindFirstChild("EndGameUI") then
+        if game:GetService("Players").LocalPlayer.PlayerGui.EndGameUI.BG.Visible then
+            game:GetService("ReplicatedStorage").Remotes.TeleportBack:FireServer()
+        end
+    end
+    local PosFarm = {
+        -- CFrame.new(-155.695068359375, 203.7942657470703, 5.2771711349487305, 1, 0, 0, 0, 1, 0, 0, 0, 1),
+        CFrame.new(-101.36604309082031, 203.81996154785156, 5.919973850250244, 1, 0, 0, 0, 1, 0, 0, 0, 1),
+        CFrame.new(-104.89454650878906, 203.85443115234375, 7.871704578399658, 1, 0, 0, 0, 1, 0, 0, 0, 1)
+    }
+    
+    local AllUnit = workspace:WaitForChild("Towers")
+    if #AllUnit:GetChildren() < 2 then
+        for i, position in pairs(PosFarm) do
+            local args = {
+                "Uryu",
+                position
+            }
+            game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("PlaceTower"):FireServer(unpack(args))
+            wait(1) -- Small delay to prevent spam
+        end
+    end
+    for i, v in pairs(AllUnit:GetChildren()) do
+        if v.Name == "Uryu" then
+            local args = {
+                v
+            }
+            game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("Upgrade"):InvokeServer(unpack(args))
+        end
+        task.wait(1)
+    end
+    task.wait(0.5)
+end
+
+local function PlayMap3()
+    local map = game:GetService("Players").LocalPlayer.PlayerGui.Right.Frame.Frame:GetChildren()[3].TextLabel.Text
+    local ClientData = require(game:GetService("ReplicatedStorage").Modules.ClientData)
+    local PosFarm = nil
+    local TypeOut = 'Leave'
+    if map == "Water Park - Act 6" then
+        TypeOut = 'Leave'
+        PosFarm = CFrame.new(-103.45145416259766, 252.42767333984375, 72.91294860839844, 1, 0, 0, 0, 1, 0, 0, 0, 1)
+    elseif map == "Hollow Dimension - Act 6" then
+        TypeOut = 'Leave'
+        PosFarm = CFrame.new(-114.908447265625, 111.9334487915039, 21.16475486755371, 1, 0, 0, 0, 1, 0, 0, 0, 1)
+    else
+        TypeOut = "Retry"
+        PosFarm = CFrame.new(-153.60244750976562, 197.96109008789062, 9.340713500976562, 1, 0, 0, 0, 1, 0, 0, 0, 1)
+    end
+    game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("PlayerReady"):FireServer()
+    if ClientData.GameSettings.AutoSkip == false then
+        local args = {"AutoSkip"}
+        game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("SetSettings"):InvokeServer(unpack(args))
+    end
+    if ClientData.GameSettings.AutoSpeedVote == false then
+        local args = {"AutoSpeedVote"}
+        game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("SetSettings"):InvokeServer(unpack(args))
+    end
+    if game:GetService("Players").LocalPlayer.PlayerGui:FindFirstChild("EndGameUI") then
+        if game:GetService("Players").LocalPlayer.PlayerGui.EndGameUI.BG.Visible then
+            if TypeOut == 'Leave' then
+                game:GetService("ReplicatedStorage").Remotes.TeleportBack:FireServer()
+            elseif TypeOut == 'Retry' then
+                GuiService.SelectedObject = game:GetService("Players").LocalPlayer.PlayerGui.EndGameUI.BG.Buttons.Retry
+                task.wait()
+                VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.Return, false, game)
+                VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.Return, false, game)
+            end
+        end
+    end
+    local AllUnit = workspace:WaitForChild("Towers")
+    if #AllUnit:GetChildren() < 1 then
+        local args = {
+            "Garou",
+            PosFarm
+        }
+        game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("PlaceTower"):FireServer(unpack(args))
+        wait(1) -- Small delay to prevent spam
+    end
+    for i, v in pairs(AllUnit:GetChildren()) do
+        if v.Name == "Garou" then
+            local args = {
+                v
+            }
+            game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("Upgrade"):InvokeServer(unpack(args))
+        end
+        task.wait(1)
+    end
+    task.wait(0.5)
+end
+
+local function PlayMap4()
+    local map = game:GetService("Players").LocalPlayer.PlayerGui.Right.Frame.Frame:GetChildren()[3].TextLabel.Text
+    local maptype = game:GetService("Players").LocalPlayer.PlayerGui.Right.Frame.Frame.Frame.TextButton.TextLabel.Text
+    local ClientData = require(game:GetService("ReplicatedStorage").Modules.ClientData)
+    local PosFarm = nil
+    local TypeOut = 'Leave'
+    if map == "Hero Association - Act 6" and maptype == "Normal" then
+        TypeOut = 'Leave'
+        PosFarm = {
+            ["Garou"] = CFrame.new(624.144775390625, 747.08642578125, 122.27247619628906, 1, 0, 0, 0, 1, 0, 0, 0, 1),
+            ['AiHoshinoEvo'] = CFrame.new(627.9154052734375, 747.08642578125, 120.26944732666016, 1, 0, 0, 0, 1, 0, 0, 0, 1),
+            ["AI Hoshino"] = CFrame.new(628.4110107421875, 747.08642578125, 109.39765930175781, 1, 0, 0, 0, 1, 0, 0, 0, 1),
+            ["ZamasuBlackGokuRoseUnevo"] = CFrame.new(624.055908203125, 747.08642578125, 125.7027587890625, 1, 0, 0, 0, 1, 0, 0, 0, 1)
+        }
+    elseif map == "Hero Association - Act 6" and maptype == "Insanity" then
+        TypeOut = 'Leave'
+        PosFarm = {
+            ["Garou"] = CFrame.new(624.144775390625, 747.08642578125, 122.27247619628906, 1, 0, 0, 0, 1, 0, 0, 0, 1),
+            ['AiHoshinoEvo'] = CFrame.new(627.9154052734375, 747.08642578125, 120.26944732666016, 1, 0, 0, 0, 1, 0, 0, 0, 1),
+            ["AI Hoshino"] = CFrame.new(628.4110107421875, 747.08642578125, 109.39765930175781, 1, 0, 0, 0, 1, 0, 0, 0, 1),
+            ["ZamasuBlackGokuRoseUnevo"] = CFrame.new(624.055908203125, 747.08642578125, 125.7027587890625, 1, 0, 0, 0, 1, 0, 0, 0, 1)
+        }
+    elseif map == "Super Hero City - Act 6" then
+        TypeOut = 'Leave'
+        PosFarm = {
+            ["Garou"] = CFrame.new(239.18716430664062, 137.8935089111328, 489.7859191894531, 1, 0, 0, 0, 1, 0, 0, 0, 1),
+            ['AiHoshinoEvo'] = CFrame.new(258.2217712402344, 137.8770751953125, 503.18536376953125, 1, 0, 0, 0, 1, 0, 0, 0, 1),
+            ["AI Hoshino"] = CFrame.new(258.2217712402344, 137.8770751953125, 503.18536376953125, 1, 0, 0, 0, 1, 0, 0, 0, 1),
+            ["ZamasuBlackGokuRoseUnevo"] = CFrame.new(238.8249053955078, 137.89381408691406, 495.71173095703125, 0.0000048438696467201225, 0, 1, 0, 1, 0, -1, 0, 0.0000048438696467201225)
+        }
+    elseif map == "Star Mansion - Act 6" then
+        TypeOut = 'Leave'
+        PosFarm = {
+            ["Garou"] = CFrame.new(563.955078125, 21.106239318847656, -436.41082763671875, 1, 0, 0, 0, 1, 0, 0, 0, 1),
+            ['AiHoshinoEvo'] = CFrame.new(553.93896484375, 21.106239318847656, -431.5882568359375, 1, 0, 0, 0, 1, 0, 0, 0, 1),
+            ["AI Hoshino"] = CFrame.new(553.93896484375, 21.106239318847656, -431.5882568359375, 1, 0, 0, 0, 1, 0, 0, 0, 1),
+            ["ZamasuBlackGokuRoseUnevo"] = CFrame.new(554.6687622070312, 21.106237411499023, -439.6399841308594, 1, 0, 0, 0, 1, 0, 0, 0, 1)
+        }
+    elseif map == "Planet Nemak - Act 6" then
+        TypeOut = 'Leave'
+        PosFarm = {
+            ["Garou"] = CFrame.new(-208.91159057617188, 87.03295135498047, 52.20246124267578, 1, 0, 0, 0, 1, 0, 0, 0, 1),
+            ['AiHoshinoEvo'] = CFrame.new(-205.2245330810547, 87.03285217285156, 34.263519287109375, 1, 0, 0, 0, 1, 0, 0, 0, 1),
+            ["AI Hoshino"] = CFrame.new(-205.2245330810547, 87.03285217285156, 34.263519287109375, 1, 0, 0, 0, 1, 0, 0, 0, 1),
+            ["ZamasuBlackGokuRoseUnevo"] = CFrame.new(-208.291015625, 87.03302001953125, 45.375938415527344, 1, 0, 0, 0, 1, 0, 0, 0, 1),
+        }
+    elseif map == "Water Park - Act 6" then
+        TypeOut = 'Leave'
+        PosFarm = {["Garou"] = CFrame.new(-103.45145416259766, 252.42767333984375, 72.91294860839844, 1, 0, 0, 0, 1, 0, 0, 0, 1)}
+    elseif map == "Hollow Dimension - Act 6" then
+        TypeOut = 'Leave'
+        PosFarm = {["Garou"] = CFrame.new(-114.908447265625, 111.9334487915039, 21.16475486755371, 1, 0, 0, 0, 1, 0, 0, 0, 1)}
+    else
+        TypeOut = "Retry"
+        PosFarm = {
+            ["Garou"] = CFrame.new(-153.60244750976562, 197.96109008789062, 9.340713500976562, 1, 0, 0, 0, 1, 0, 0, 0, 1)
+        }
+    end
+    game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("PlayerReady"):FireServer()
+    if ClientData.GameSettings.AutoSkip == false then
+        local args = {"AutoSkip"}
+        game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("SetSettings"):InvokeServer(unpack(args))
+    end
+    if ClientData.GameSettings.AutoSpeedVote == false then
+        local args = {"AutoSpeedVote"}
+        game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("SetSettings"):InvokeServer(unpack(args))
+    end
+    if game:GetService("Players").LocalPlayer.PlayerGui:FindFirstChild("EndGameUI") then
+        if game:GetService("Players").LocalPlayer.PlayerGui.EndGameUI.BG.Visible then
+            if TypeOut == 'Leave' then
+                game:GetService("ReplicatedStorage").Remotes.TeleportBack:FireServer()
+            elseif TypeOut == 'Retry' then
+                GuiService.SelectedObject = game:GetService("Players").LocalPlayer.PlayerGui.EndGameUI.BG.Buttons.Retry
+                task.wait()
+                VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.Return, false, game)
+                VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.Return, false, game)
+            end
+        end
+    end
+    local AllUnit = workspace:WaitForChild("Towers")
+    for name,pos in pairs(PosFarm) do
+        local found = false
+        for _,v in pairs(AllUnit:GetChildren()) do
+            if v.Name == name then found = true break end
+        end
+        if not found then
+            game:GetService("ReplicatedStorage").Remotes.PlaceTower:FireServer(name,pos)
+            task.wait(0.5)
+        end
+    end
+    task.wait(1)
+    for _,v in pairs(AllUnit:GetChildren()) do
+        if PosFarm[v.Name] then
+            game:GetService("ReplicatedStorage").Remotes.Upgrade:InvokeServer(v)
+            task.wait(1)
+        end
+    end
+        task.wait(0.5)
+    end
+local function CheckBanner()
+    if game.PlaceId == 12900046592 then
+        while true do
+            local minute = os.date("*t").min
+            if minute <= 5 then
+                game:GetService("ReplicatedStorage").Remotes.TeleportBack:FireServer()
+            end
+            task.wait()
+        end
+    end
+end
+local function HaloweenRoll()
+    local a = require(game:GetService("ReplicatedStorage").Modules.ClientData)
+    if a.AutoSellSettings['Hallowen2025Unit_P2'].Epic == false then
+        local args = {"Hallowen2025Unit_P2","Epic"}
+        game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("ChangeAutoSellSetting"):FireServer(unpack(args))
+    end
+    if a.AutoSellSettings['Hallowen2025Unit_P2'].Legacy == false then
+        local args = {"Hallowen2025Unit_P2","Legacy"}
+        game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("ChangeAutoSellSetting"):FireServer(unpack(args))
+    end
+    if a.AutoSellSettings['Hallowen2025Unit_P2'].Legacy == false then
+        local args = {"Hallowen2025Unit_P2","Legacy"}
+        game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("ChangeAutoSellSetting"):FireServer(unpack(args))
+    end
+    if a.AutoSellSettings['Hallowen2025Unit_P2'].Legendary == false then
+        local args = {"Hallowen2025Unit_P2","Legendary"}
+        game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("ChangeAutoSellSetting"):FireServer(unpack(args))
+    end
+    if a.AutoSellSettings['Hallowen2025Unit_P2'].Mythic == false then
+        local args = {"Hallowen2025Unit_P2","Mythic"}
+        game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("ChangeAutoSellSetting"):FireServer(unpack(args))
+    end
+    if a.AutoSellSettings['Hallowen2025Unit_P2'].Rare == false then
+        local args = {"Hallowen2025Unit_P2","Rare"}
+        game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("ChangeAutoSellSetting"):FireServer(unpack(args))
+    end
+    while not CheckUnitHave("AinzAlbedoUnevo") and not CheckUnitHave("ZamasuBlackGokuRoseUnevo") and a.HalloweenCookies > 2000 do
+        local args = {
+            10,
+            "Hallowen2025Unit_P2"
+        }
+        game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("Summon"):InvokeServer(unpack(args))
+        task.wait(1)
+    end
+end
+local function BannerRoll()
+    local a = require(game:GetService("ReplicatedStorage").Modules.ClientData)
+    if a.AutoSellSettings['1'].Epic == false then
+        local args = {"1","Epic"}
+        game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("ChangeAutoSellSetting"):FireServer(unpack(args))
+    end
+    if a.AutoSellSettings['1'].Rare == false then
+        local args = {"1","Rare"}
+        game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("ChangeAutoSellSetting"):FireServer(unpack(args))
+    end
+    if game:GetService("ReplicatedStorage").Banner["1"].Legendary.Value == "Uryu" and a.Emeralds > 500 then
+        local args = {
+	        10,
+	        "1"
+        }
+        game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("Summon"):InvokeServer(unpack(args))
+        return true
+    else
+        return false
+    end
+end
+
+local function AutoFeedUryu()
+    local ClientData = require(game:GetService("ReplicatedStorage").Modules.ClientData)
+    local best = nil
+    local maxLv = -1
+
+    for _, v in pairs(ClientData.UnitData) do
+        if type(v) == "table" and v.UnitName == "Uryu" and v.Level > maxLv then
+            maxLv = v.Level
+            best = v
+        end
+    end
+
+    if best then
+        game:GetService("ReplicatedStorage").Remotes.Feed:FireServer(best.UnitID, { ["Ninja Headband"] = 1 })
+        return best.UnitID
+    end
+    return nil
+end
+
+local function AutoFeedGarou()
+    local ClientData = require(game:GetService("ReplicatedStorage").Modules.ClientData)
+    local best = nil
+    local maxLv = -1
+
+    for _, v in pairs(ClientData.UnitData) do
+        if type(v) == "table" and v.UnitName == "Garou" and v.Level > maxLv then
+            maxLv = v.Level
+            best = v
+        end
+    end
+
+    if best then
+        game:GetService("ReplicatedStorage").Remotes.Feed:FireServer(best.UnitID, { ["Ninja Headband"] = 1 })
+        game:GetService("ReplicatedStorage").Remotes.Feed:FireServer(best.UnitID, { ["Capsule Corp Capsule"] = 1 })
+        return best.UnitID
+    end
+    return nil
+end
+local function ConvertCandy()
+    local a = require(game:GetService("ReplicatedStorage").Modules.ClientData)
+    local args = {
+        2,
+        math.floor(a.HalloweenCookies / 750),
+        "Hallowen2025_P2"
+    }
+    local success, result = pcall(function()
+        game:GetService("ReplicatedStorage"):WaitForChild("Events"):WaitForChild("Hallowen2025"):WaitForChild("Purchase"):InvokeServer(unpack(args))
+    end)
+
+
+    
+    if not success then
+        warn("Lỗi khi Mua Capsule: .. " .. result  .. "result")
+    end
+    task.wait(1)
+    local args = {
+        "HalloweenCapsule2025_P2",
+        a.ItemData.HalloweenCapsule2025_P2 and a.ItemData.HalloweenCapsule2025_P2.Amount or 1
+    }
+    game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("OpenCapsule"):FireServer(unpack(args))
+    task.wait(2)
+end
+
+local function RerollUnit(unit)
+    local ClientData = require(game:GetService("ReplicatedStorage").Modules.ClientData)
+    local Reroll = ClientData.Rerolls or 0
+    local best = nil
+    local trait = nil
+    local maxLv = -1
+    for _, v in pairs(ClientData.UnitData) do
+        if type(v) == "table" and v.UnitName == unit and v.Level > maxLv then
+            maxLv = v.Level
+            trait = v.Quirk
+            best = v
+        end
+    end
+    if best then
+        local ID = tostring(best.UnitID)
+        if unit == "Garou" and trait ~= "Glitched" and trait ~= "Avatar" and trait ~= "Overlord" then
+            ConvertCandy()
+            while trait ~= "Glitched" and trait ~= "Avatar" and trait ~= "Overlord" and Reroll > 1 do
+                if trait then
+                    print(trait, ID)
+                    local args = {
+                        ID,
+                        tostring(trait)
+                    }
+                    game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("Quirks"):WaitForChild("Roll"):InvokeServer(unpack(args))
+                else
+                    local args = {
+                        ID
+                    }
+                    game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("Quirks"):WaitForChild("Roll"):InvokeServer(unpack(args))
+                end
+                Reroll = ClientData.Rerolls or 0
+                trait = ClientData.UnitData[ID].Quirk
+            end
+        elseif unit == "Carry" and trait ~= "Glitched" and trait ~= "Avatar" and trait ~= "Overlord" then
+            ConvertCandy()
+            while trait ~= "Glitched" and Reroll > 500 do
+                if trait then
+                    print(trait, ID)
+                    local args = {
+                        ID,
+                        tostring(trait)
+                    }
+                    game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("Quirks"):WaitForChild("Roll"):InvokeServer(unpack(args))
+                else
+                    local args = {
+                        ID
+                    }
+                    game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("Quirks"):WaitForChild("Roll"):InvokeServer(unpack(args))
+                end
+                Reroll = ClientData.Rerolls or 0
+                trait = ClientData.UnitData[ID].Quirk
+            end
+        end
+    end
+    return trait
+end
+local function SEquip(chosee)
+    local ClientData = require(game:GetService("ReplicatedStorage").Modules.ClientData)
+
+    if chosee == "Time4" then
+        game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("UnequipAll"):FireServer()
+        local targetUnitName = {"Garou", "AiHoshinoEvo", "AI Hoshino"}
+        local targetonein = {"AinzAlbedoUnevo", "ZamasuBlackGokuRoseUnevo"}
+
+        local function hasAiHoshinoEvo()
+            for i, v in pairs(ClientData.UnitData) do
+                if type(v) == "table" and v.UnitName == "AiHoshinoEvo" then
+                    return true
+                end
+            end
+            return false
+        end
+
+        local function findHighestLevelUnit(unitNames, excludeIfEvoExists)
+            local bestUnit = nil
+            local highestLevel = -1
+            
+            for i, v in pairs(ClientData.UnitData) do
+                if type(v) == "table" and v.UnitName and v.Level then
+                    local shouldConsider = true
+                    
+                    -- Nếu có AiHoshinoEvo thì bỏ qua AI Hoshino
+                    if excludeIfEvoExists and v.UnitName == "AI Hoshino" and hasAiHoshinoEvo() then
+                        shouldConsider = false
+                    end
+                    
+                    if shouldConsider then
+                        for _, name in ipairs(unitNames) do
+                            if v.UnitName == name and v.Level > highestLevel then
+                                highestLevel = v.Level
+                                bestUnit = v
+                            end
+                        end
+                    end
+                end
+            end
+            return bestUnit
+        end
+
+        local function equipAndFeed(unit)
+            if not unit or not unit.UnitID then return end
+            local ID = unit.UnitID
+            print("Equipping " .. ID .. " (Level: " .. unit.Level .. ")")
+
+            -- Feed items
+            game:GetService("ReplicatedStorage").Remotes.Feed:FireServer(ID, { ["Ninja Headband"] = 1 })
+            game:GetService("ReplicatedStorage").Remotes.Feed:FireServer(ID, { ["Capsule Corp Capsule"] = 1 })
+            task.wait(2)
+
+            -- Equip
+            local equipArgs = { ID }
+            game:GetService("ReplicatedStorage").Remotes.Equip:InvokeServer(unpack(equipArgs))
+        end
+
+        -- Kiểm tra có AiHoshinoEvo không để quyết định có exclude AI Hoshino không
+        local excludeAIHoshino = hasAiHoshinoEvo()
+
+        for _, unitName in ipairs(targetUnitName) do
+            local unit = findHighestLevelUnit({unitName}, excludeAIHoshino)
+            if unit then
+                equipAndFeed(unit)
+                task.wait(1)
+            else
+                if unitName == "AI Hoshino" and excludeAIHoshino then
+                    print("Skipped AI Hoshino because AiHoshinoEvo exists")
+                else
+                    print("No " .. unitName .. " found.")
+                end
+            end
+        end
+
+        local bestOneIn = findHighestLevelUnit(targetonein, false) -- không cần exclude cho onein
+        if bestOneIn then
+            equipAndFeed(bestOneIn)
+        else
+            print("No unit from targetonein found.")
+        end
+        task.wait(5)
+    elseif chosee == "Time3" then
+        game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("UnequipAll"):FireServer()
+        local targetUnitName = "Garou"
+        local bestUnit = nil
+        local highestLevel = -1
+        for i, v in pairs(ClientData.UnitData) do
+            if type(v) == "table" and v.UnitName == targetUnitName and v.Level and v.Level > highestLevel then
+                highestLevel = v.Level
+                bestUnit = v
+            end
+        end
+
+        if bestUnit then
+            local ID = bestUnit.UnitID
+            print("Equipping highest level Uryu (Level:", highestLevel .. ")")
+
+            -- Feed Ninja Headband
+            game:GetService("ReplicatedStorage").Remotes.Feed:FireServer(best.UnitID, { ["Ninja Headband"] = 1 })
+            game:GetService("ReplicatedStorage").Remotes.Feed:FireServer(best.UnitID, { ["Capsule Corp Capsule"] = 1 })
+            task.wait(2)
+
+            -- Equip
+            local equipArgs = { ID }
+            game:GetService("ReplicatedStorage").Remotes.Equip:InvokeServer(unpack(equipArgs))
+        else
+            print("No Garou found.")
+        end
+    elseif chosee == "Time2" then
+        game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("UnequipAll"):FireServer()
+        local targetUnitName = "Uryu"
+        local bestUnit = nil
+        local highestLevel = -1
+        for i, v in pairs(ClientData.UnitData) do
+            if type(v) == "table" and v.UnitName == targetUnitName and v.Level and v.Level > highestLevel then
+                highestLevel = v.Level
+                bestUnit = v
+            end
+        end
+
+        if bestUnit then
+            local ID = bestUnit.UnitID
+            print("Equipping highest level Uryu (Level:", highestLevel .. ")")
+
+            -- Feed Ninja Headband
+            local feedArgs = {
+                ID,
+                { ["Ninja Headband"] = 5 }
+            }
+            game:GetService("ReplicatedStorage").Remotes.Feed:FireServer(unpack(feedArgs))
+            task.wait(2)
+
+            -- Equip
+            local equipArgs = { ID }
+            game:GetService("ReplicatedStorage").Remotes.Equip:InvokeServer(unpack(equipArgs))
+        else
+            print("No Uryu found.")
+        end
+
+    elseif chosee == "Time1" then
+        game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("UnequipAll"):FireServer()
+        local targetUnits = {
+            "Zoro", "Sanji", "Vegeta", "Asta", "Nami", "NoobSung", 
+            "Puri-Puri Prisoner", "Luffy", "Goku", "Denji", "Ichigo", "Kirito"
+        }
+        
+        local bestUnit = nil
+        local highestLevel = -1
+
+        for i, v in pairs(ClientData.UnitData) do
+            if type(v) == "table" and v.UnitID and v.Level then
+                for _, targetName in ipairs(targetUnits) do
+                    if v.UnitName == targetName and v.Level > highestLevel then
+                        highestLevel = v.Level
+                        bestUnit = v
+                    end
+                end
+            end
+        end
+
+        if bestUnit then
+            print("Equipping highest level unit:", bestUnit.UnitID, "Level:", highestLevel)
+            local args = { bestUnit.UnitID }
+            game:GetService("ReplicatedStorage").Remotes.Equip:InvokeServer(unpack(args))
+        else
+            -- Auto summon nếu không có unit nào
+            if ClientData.AutoSellSettings['1'].Rare == true then
+                local args = {"1", "Rare"}
+                game:GetService("ReplicatedStorage").Remotes.ChangeAutoSellSetting:FireServer(unpack(args))
+            end
+            local summonArgs = { 10, "1" }
+            game:GetService("ReplicatedStorage").Remotes.Summon:InvokeServer(unpack(summonArgs))
+        end
+    end
+end
+local function CheckStepFarm()
+    local Unit = {}
+    local a = require(game:GetService("ReplicatedStorage").Modules.ClientData)
+    if not a.UnitData then return false end
+    for i, v in pairs(a.UnitData) do
+        if type(v) == "table" then
+            for key, value in pairs(v) do
+                local NameUnit = v.UnitName
+                if NameUnit == "Uryu" or NameUnit == "Garou" or NameUnit == "AI Hoshino" or NameUnit == "AiHoshinoEvo" or NameUnit == "AinzAlbedoUnevo" or NameUnit == "ZamasuBlackGokuRoseUnevo" then 
+                    Unit[NameUnit] = true
+                end
+            end
+        end
+    end
+    if Unit.Garou and (Unit.AinzAlbedoUnevo or Unit.ZamasuBlackGokuRoseUnevo) and (Unit['AI Hoshino'] or Unit.AiHoshinoEvo) then
+        StepFarm = "Time4"
+    elseif Unit.Garou then
+        StepFarm = "Time3"
+    elseif Unit.Uryu then
+        StepFarm = "Time2"
+    else
+        StepFarm = "Time1"
+    end
+end
+
+local function ClaimGarou()
+    local Quests = {"ClearStory", "FeedUnit", "SummonFromBanner", "WinStory", "RerollTechnique", "CraftItem"}
+
+    for _, questName in pairs(Quests) do
+        local success, result = pcall(function()
+            game:GetService("ReplicatedStorage")
+                :WaitForChild("Remotes")
+                :WaitForChild("Guidebook")
+                :WaitForChild("ClaimQuest")
+                :InvokeServer(questName)  -- Truyền trực tiếp tên quest
+        end)
+
+        if not success then
+            warn("Lỗi khi claim quest: " .. questName .. " | Error: " .. result)
+        end
+
+        task.wait()
+    end
+    game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("Guidebook"):WaitForChild("CompleteChapter"):InvokeServer()
+end
+local function JoinMap(map, act, diff)
+    local Story = workspace.TeleporterFolder.Story
+    for i,v in pairs(Story:GetChildren()) do
+        if v.Door.UI.PlayerCount.Text == "0/4 Players" then
+            game.Players.LocalPlayer.Character.HumanoidRootPart.CFrame = v.Door.CFrame
+            task.wait(1)
+            local args = {
+                "Select",
+                map,
+                act,
+                diff,
+                "Story"
+            }
+            game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("Teleporter"):WaitForChild("Interact"):FireServer(unpack(args))
+            task.wait(0.5)
+            local args = {
+                "Skip"
+            }
+            game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("Teleporter"):WaitForChild("Interact"):FireServer(unpack(args))
+            task.wait(5)
+        end
+    end
+end
+
+local function OpenCapsule()
+    local a = require(game:GetService("ReplicatedStorage").Modules.ClientData)
+    local args = {
+	    "BigTreatCandyBag",
+        a.ItemData.BigTreatCandyBag and a.ItemData.BigTreatCandyBag.Amount or 1
+    }
+    game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("OpenCapsule"):FireServer(unpack(args))
+    task.wait(2)
+    local args = {
+        "TreatCandyBag",
+        a.ItemData.TreatCandyBag and a.ItemData.TreatCandyBag.Amount or 1
+    }
+    game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("OpenCapsule"):FireServer(unpack(args))
+    task.wait(2)
+    ConvertCandy()
+    local args = {
+        2,
+        math.floor(a.CandyBasket / 1000),
+        "Hallowen2025"
+    }
+    local success, result = pcall(function()
+        game:GetService("ReplicatedStorage"):WaitForChild("Events"):WaitForChild("Hallowen2025"):WaitForChild("Purchase"):InvokeServer(unpack(args))
+    end)
+
+    if not success then
+        warn("Lỗi khi Mua Capsule: .. " .. result  .. "result")
+    end
+    task.wait(1)
+    local args = {
+        "HalloweenCapsule2025",
+        a.ItemData.HalloweenCapsule2025 and a.ItemData.HalloweenCapsule2025.Amount or 1
+    }
+    game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("OpenCapsule"):FireServer(unpack(args))
+    task.wait(2)
+end
+function EvoUnit(unit)
+    if unit == "AI Hoshino" then
+        local a = require(game:GetService("ReplicatedStorage").Modules.ClientData)
+        if a.ItemData.Hoshino_Evo_Item and a.ItemData.Hoshino_Evo_Item.Amount < 1 then
+            local args = {
+                31
+            }
+            game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("AttemptCraft"):FireServer(unpack(args))
+        end
+        if a.ItemData.CommonSpiritShard and a.ItemData.CommonSpiritShard.Amount < 100 then
+            local args = {
+                "EpicSpiritShard",
+                "CommonSpiritShard",
+                4
+            }
+            game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("ConvertShards"):FireServer(unpack(args))
+        end
+        local ClientData = require(game:GetService("ReplicatedStorage").Modules.ClientData)
+        local best = nil
+        local maxLv = -1
+
+        for _, v in pairs(ClientData.UnitData) do
+            if type(v) == "table" and v.UnitName == "AI Hoshino" and v.Level > maxLv then
+                maxLv = v.Level
+                best = v
+            end
+        end
+
+        if best then
+            local args = {
+                best.UnitID
+            }
+            game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("Evolve"):InvokeServer(unpack(args))
+
+        end
+    elseif unit == "Garou" then
+        local a = require(game:GetService("ReplicatedStorage").Modules.ClientData)
+        if a.ItemData.CommonSpiritShard and a.ItemData.CommonSpiritShard.Amount < 100 then
+            local args = {
+                "EpicSpiritShard",
+                "CommonSpiritShard",
+                4
+            }
+            game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("ConvertShards"):FireServer(unpack(args))
+        end
+        local ClientData = require(game:GetService("ReplicatedStorage").Modules.ClientData)
+        local best = nil
+        local maxLv = -1
+
+        for _, v in pairs(ClientData.UnitData) do
+            if type(v) == "table" and v.UnitName == "Garou" and v.Level > maxLv then
+                maxLv = v.Level
+                best = v
+            end
+        end
+
+        if best then
+            local args = {
+                best.UnitID
+            }
+            game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("Evolve"):InvokeServer(unpack(args))
+
+        end
+    end
+end
+local function MainFarm()
+    while true do
+        if game.PlaceId == 12900046592 then
+            CheckStepFarm()
+            if StepFarm == "Time1" then
+                PlayMap1()
+            elseif StepFarm == "Time2" then
+                PlayMap2()
+            elseif StepFarm == "Time3" then
+                PlayMap4()
+            elseif StepFarm == "Time4" then
+                PlayMap4()
+            end
+        else
+            if not BannerRoll() and not HaloweenRoll() then
+                OpenCapsule()
+                local traitGarou = RerollUnit("Garou")
+                local a = require(game:GetService("ReplicatedStorage").Modules.ClientData)
+                
+                AutoFeedUryu()
+                AutoFeedGarou()
+                CheckStepFarm()
+                task.wait(1)
+                if not CheckUnitHave('AI Hoshino') and not CheckUnitHave('AiHoshinoEvo') then
+                    for i = 1, 6 do
+                        local args = {
+                            i
+                        }
+                        game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("AttemptCraft"):FireServer(unpack(args))
+                    end
+                end
+                if CheckUnitHave('AI Hoshino') and not CheckUnitHave('AiHoshinoEvo') then
+                    EvoUnit('AI Hoshino')
+                end
+                if CheckUnitHave('Garou') and not CheckUnitHave('GarouEvolution') then
+                    EvoUnit('Garou')
+                end
+                task.wait(1)
+                ClaimGarou()
+                local Equip = GetListEquip()
+                if StepFarm == "Time4" then
+                    if (Equip.Garou or Equip.GarouEvolution) and (Equip.AinzAlbedoUnevo or Equip.ZamasuBlackGokuRoseUnevo) and (Equip['AI Hoshino'] or Equip.AiHoshinoEvo) then
+                        if traitGarou == "Glitched" or traitGarou == "Avatar" or traitGarou == "Overlord" then
+                            -- local traitIdol = RerollUnit("AI Hoshino")
+                            -- local traitCarry = RerollUnit("Carry")
+                            -- if traitIdol and traitCarry then
+                            --     print('Trait')
+                            -- end
+                            if StepFarm == "Time4" and a.StoryProgress >= 42 and not Equip.GarouEvolution then
+                                JoinMap("Hero Association",6,"Normal")
+                            elseif StepFarm == "Time4" and a.StoryProgress >= 36 and a.StoryProgress < 42 then
+                                JoinMap("Hero Association",6,"Insanity")
+                            elseif StepFarm == "Time4" and a.StoryProgress >= 30 and a.StoryProgress < 36 then
+                                JoinMap("Super Hero City",6,"Insanity")
+                            elseif StepFarm == "Time4" and a.StoryProgress >= 24 and a.StoryProgress < 30 then
+                                JoinMap("Star Mansion",6,"Insanity")
+                            elseif StepFarm == "Time4" and a.StoryProgress >= 18 and a.StoryProgress < 24 then
+                                JoinMap("Planet Nemak",6,"Insanity")
+                            elseif StepFarm == "Time4" and a.StoryProgress >= 12 and a.StoryProgress < 18 then
+                                JoinMap("Hollow Dimension",6,"Insanity")
+                            elseif StepFarm == "Time4" and a.StoryProgress >= 6 and a.StoryProgress < 12 then
+                                JoinMap("Water Park",6,"Insanity")
+                            end
+                        else
+                            JoinMap("Desert Village", 1, "Nightmare")
+                        end
+                    else
+                        SEquip(StepFarm)
+                    end
+                elseif StepFarm == "Time3" then
+                    if Equip.Garou then
+                        if a.StoryProgress < 18 then
+                            if StepFarm == "Time3" and a.StoryProgress > 12 and a.StoryProgress < 18 then
+                                JoinMap("Hollow Dimension",6,"Insanity")
+                            elseif StepFarm == "Time3" and a.StoryProgress > 6 and a.StoryProgress < 12 then
+                                JoinMap("Water Park",6,"Insanity")
+                            end
+                        else
+                            JoinMap("Desert Village", 1, "Nightmare")
+                        end
+                    else
+                        SEquip(StepFarm)
+                    end
+                elseif StepFarm == "Time2" and a.StoryProgress < 6 then
+                    if Equip.Uryu then
+                        print('Equip Done')
+                        JoinMap("Desert Village", 6, "Insanity")
+                    else
+                        SEquip(StepFarm)
+                    end
+                elseif StepFarm == "Time1" or StepFarm == "Time2" and a.StoryProgress >= 6 then
+                    if Equip.Zoro or Equip.Sanji or Equip.Vegeta or Equip.Asta or Equip.Nami or Equip.NoobSung or Equip['Puri-Puri Prisoner'] or Equip.Luffy or Equip.Goku or Equip.Denji or Equip.Ichigo or Equip.Kirito then
+                        JoinMap("Desert Village", 1, "Nightmare")
+                    else
+                        SEquip(StepFarm)
+                    end
+                end
+            end
+        end
+        task.wait(1)
+    end
+end
+MainFarm()
